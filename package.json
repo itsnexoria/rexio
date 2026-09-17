@@ -1,21 +1,24 @@
 {
   "name": "rexio",
   "productName": "Rexio",
-  "version": "1.0.4",
-  "description": "Roblox account manager - add accounts and launch straight into Roblox.",
+  "version": "0.1.0",
+  "description": "Roblox account manager - add accounts and launch straight into Sober.",
   "author": {
-    "name": "Nexus",
-    "email": "support@nexorealm.org"
+    "name": "Willem",
+    "email": "willem@example.com"
   },
-  "homepage": "https://nexorealm.org/",
+  "homepage": "https://github.com/willem/rexio",
   "main": "src/main.js",
   "scripts": {
+    "postinstall": "electron-builder install-app-deps",
     "start": "electron .",
     "dist": "electron-builder --linux deb",
     "dist:win": "electron-builder --win nsis"
   },
   "dependencies": {
-    "electron-updater": "^6.3.0"
+    "electron-updater": "^6.3.0",
+    "uiohook-napi": "^1.5.5",
+    "@nut-tree-fork/nut-js": "^4.2.6"
   },
   "devDependencies": {
     "electron": "^31.0.0",

@@ -30,13 +30,14 @@ function addAccount({ userId, username, displayName, cookie }) {
 }
 
 function listAccounts() {
-  return readAll().map(({ userId, username, displayName, lastLaunched, note, lastPlace }) => ({
+  return readAll().map(({ userId, username, displayName, lastLaunched, note, lastPlace, launchMacroId }) => ({
     userId,
     username,
     displayName,
     lastLaunched: lastLaunched || null,
     note: note || '',
     lastPlace: lastPlace || null,
+    launchMacroId: launchMacroId || null,
   }));
 }
 
@@ -73,6 +74,7 @@ function updateField(userId, field, value) {
 const setLastLaunched = (userId, timestamp) => updateField(userId, 'lastLaunched', timestamp);
 const setNote = (userId, note) => updateField(userId, 'note', note);
 const setLastPlace = (userId, placeInfo) => updateField(userId, 'lastPlace', placeInfo);
+const setLaunchMacro = (userId, macroId) => updateField(userId, 'launchMacroId', macroId || null);
 
 // ---- Passphrase-protected export/import ----
 // Cookies are decrypted here (safeStorage keys are tied to this machine's OS
@@ -86,6 +88,7 @@ function exportAll() {
     note: a.note || '',
     lastLaunched: a.lastLaunched || null,
     lastPlace: a.lastPlace || null,
+    launchMacroId: a.launchMacroId || null,
     cookie: safeStorage.decryptString(Buffer.from(a.cookie, 'base64')),
   }));
 }
@@ -96,6 +99,7 @@ function importAll(records) {
     if (r.note) setNote(r.userId, r.note);
     if (r.lastLaunched) setLastLaunched(r.userId, r.lastLaunched);
     if (r.lastPlace) setLastPlace(r.userId, r.lastPlace);
+    if (r.launchMacroId) setLaunchMacro(r.userId, r.launchMacroId);
   });
 }
 
@@ -108,6 +112,7 @@ module.exports = {
   setLastLaunched,
   setNote,
   setLastPlace,
+  setLaunchMacro,
   exportAll,
   importAll,
   rawFilePath: filePath,

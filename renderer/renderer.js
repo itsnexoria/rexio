@@ -20,6 +20,7 @@ const confirmCancel = document.getElementById('confirmCancel');
 const confirmOk = document.getElementById('confirmOk');
 
 let allAccounts = [];
+let cachedMacros = [];
 let selectMode = false;
 const selectedIds = new Set();
 
@@ -143,6 +144,10 @@ function buildCard(acc, total, index) {
       <div class="account-handle">@${acc.username}${presence ? ` · ${presence.label}` : ''}${robuxText ? ` · ${robuxText}` : ''}</div>
       ${lastLaunched ? `<div class="last-launched">Last launched ${lastLaunched}</div>` : ''}
       <div class="${noteClass}" data-note="${(acc.note || '').replace(/"/g, '&quot;')}">${noteText}</div>
+      <select class="macro-autorun-select" title="Play this macro ~15s after launching">
+        <option value="">No auto-run macro</option>
+        ${cachedMacros.map((m) => `<option value="${m.id}" ${acc.launchMacroId === m.id ? 'selected' : ''}>▶ ${m.name}</option>`).join('')}
+      </select>
     </div>
     <div class="account-actions">
       ${acc.lastPlaceName ? `<button class="btn-join" title="Join ${acc.lastPlaceName}">▶ ${acc.lastPlaceName}</button>` : ''}
@@ -167,6 +172,13 @@ function buildCard(acc, total, index) {
       toggle();
     };
   }
+
+  const macroSelect = li.querySelector('.macro-autorun-select');
+  macroSelect.onclick = (e) => e.stopPropagation();
+  macroSelect.onchange = async () => {
+    await window.api.setLaunchMacro(acc.userId, macroSelect.value || null);
+    acc.launchMacroId = macroSelect.value || null;
+  };
 
   const noteEl = li.querySelector('.account-note');
   noteEl.onclick = () => {
@@ -247,7 +259,7 @@ function renderList(accounts) {
 }
 
 async function loadAndRender() {
-  allAccounts = await window.api.list();
+  [allAccounts, cachedMacros] = await Promise.all([window.api.list(), window.api.listMacros()]);
   searchInput.hidden = allAccounts.length <= 5;
   applyFilter();
 }
@@ -418,6 +430,67 @@ window.api.onPresenceUpdate((accounts) => {
   applyFilter();
 });
 
+// ---- Custom menu bar (dropdowns) ----
+const menuItems = document.querySelectorAll('.menu-item');
+
+function closeAllMenus() {
+  menuItems.forEach((m) => m.classList.remove('open'));
+}
+
+menuItems.forEach((item) => {
+  item.addEventListener('click', (e) => {
+    // Ignore clicks on the action buttons inside — handled separately below.
+    if (e.target.closest('.menu-dropdown')) return;
+    const wasOpen = item.classList.contains('open');
+    closeAllMenus();
+    if (!wasOpen) item.classList.add('open');
+  });
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.menu-item')) closeAllMenus();
+});
+
+const menuActions = {
+  about: async () => {
+    const { version } = await window.api.showAbout();
+    toast(`Rexio v${version} — a Roblox account manager.`, 'info');
+  },
+  'check-updates': async () => {
+    const result = await window.api.checkForUpdates();
+    if (!result.ok) toast(result.error, 'error');
+    else toast(result.version ? `Update available: v${result.version}` : "You're up to date.", 'success');
+  },
+  'goto-settings': () => document.querySelector('.tab[data-view="app"]').click(),
+  quit: () => window.api.quitApp(),
+  'add-account': () => addBtn.click(),
+  refresh: () => refreshBtn.click(),
+  'view-list': () => setViewMode('list'),
+  'view-grid': () => setViewMode('grid'),
+  'zoom-in': () => window.api.zoomIn(),
+  'zoom-out': () => window.api.zoomOut(),
+  'zoom-reset': () => window.api.resetZoom(),
+  fullscreen: () => window.api.toggleFullscreen(),
+  minimize: () => window.api.minimizeWindow(),
+  close: () => window.api.closeWindow(),
+  'open-log': () => window.api.openLogFile(),
+  github: () => window.api.openExternal('https://github.com/itsnexoria/rexio'),
+  issue: () => window.api.openExternal('https://github.com/itsnexoria/rexio/issues'),
+};
+
+document.querySelectorAll('.menu-dropdown button').forEach((btn) => {
+  btn.onclick = () => {
+    closeAllMenus();
+    menuActions[btn.dataset.action]?.();
+  };
+});
+
+// ---- Custom app menu actions ----
+window.api.onMenuAddAccount(() => addBtn.click());
+window.api.onMenuRefresh(() => refreshBtn.click());
+window.api.onMenuViewMode((mode) => setViewMode(mode));
+window.api.onMenuGotoSettings(() => document.querySelector('.tab[data-view="app"]').click());
+
 loadAndRender();
 
 // Tab switching
@@ -437,6 +510,7 @@ document.querySelectorAll('.tab').forEach((tab) => {
     moveIndicatorTo(tab);
     const view = document.getElementById(`view-${tab.dataset.view}`);
     view.hidden = false;
+    if (tab.dataset.view === 'macros' && window.initMacros) window.initMacros();
     if (tab.dataset.view === 'platform' && window.initPlatformSettings) window.initPlatformSettings();
     if (tab.dataset.view === 'app' && window.initAppSettings) window.initAppSettings();
   };

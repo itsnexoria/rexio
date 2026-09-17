@@ -13,6 +13,9 @@ re-entering passwords, no browser round-trip.
 - **Drag to reorder**, with a confirm step before removing an account.
 - **In-app FastFlag editor** — Sober's `config.json` on Linux, or Roblox's
   `ClientAppSettings.json` on Windows — instead of hand-editing files.
+- **Macros** — record global mouse/keyboard sequences and play them back with
+  a hotkey (ported from [TGMacro](https://github.com/trksyln/TGMacro)'s core
+  action model).
 - **System tray** with a quick-launch menu; configurable minimize-to-tray.
 - **Start on login**, desktop notifications, auto-retry on flaky Roblox API
   calls, passphrase-protected account backup/restore.
@@ -39,6 +42,20 @@ and builds a `roblox-player:` launch URI.
   (`org.vinegarhq.Sober`)
 - **Windows**: the official Roblox client installed
 - Node.js 18+ (for building from source)
+- **Macros** use native modules (`uiohook-napi` for recording,
+  `@nut-tree-fork/nut-js` for playback) that get rebuilt against Electron's
+  ABI via the `postinstall` script. On Linux you'll need build tools plus
+  `libxtst-dev` and `libpng-dev` (Debian/Ubuntu: `sudo apt install build-essential libxtst-dev libpng-dev`).
+  On Wayland, global hotkeys and input recording may not work depending on
+  your compositor — X11/XWayland is the supported path for now.
+
+## Macros
+
+Open the **Macros** tab, click **Record new macro**, perform the mouse/keyboard
+sequence, then stop and name it. Assign a hotkey from the macro's row to
+replay it anywhere — pressing the hotkey again while it's playing stops it.
+Only keyboard, mouse click, and mouse move actions are ported for now (no
+color triggers, multi-profile, or `.amc` import from the original TGMacro yet).
 
 ## Development
 
@@ -67,16 +84,29 @@ Output: `dist/Rexio Setup <version>.exe`. Note: for a polished result you'll
 want a real multi-resolution `.ico` file instead of the raw `.png` — swap the
 `win.icon` path in `package.json` once you have one.
 
+## Releasing
+
+`.github/workflows/release.yml` builds the `.deb` (on an Ubuntu runner) and
+the `.exe` (on a Windows runner — no local Wine needed) and publishes both
+to GitHub Releases automatically whenever a tag matching `v*.*.*` is pushed.
+
+To cut a release:
+
+```bash
+npm version patch   # or minor / major — bumps package.json and tags it
+git push --follow-tags
+```
+
+That's it — check the repo's Actions tab for build progress, and the
+Releases page once it's done. No local build or `GH_TOKEN` needed; the
+workflow uses the repo's built-in `GITHUB_TOKEN`.
+
 ## Auto-updates
 
 Rexio checks GitHub Releases for new versions on startup (packaged builds
-only). To enable this for your own fork:
-
-1. Update the `build.publish` block in `package.json` with your GitHub
-   username/repo.
-2. Set a `GH_TOKEN` environment variable with a GitHub personal access token
-   before running `npm run dist -- --publish always` (or the Windows
-   equivalent) to upload the build as a release asset.
+only), pointed at `itsnexoria/rexio` per the `build.publish` block in
+`package.json`. Once a release exists (see above), packaged installs will
+pick it up automatically.
 
 ## Notes / limitations
 

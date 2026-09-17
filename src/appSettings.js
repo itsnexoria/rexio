@@ -8,6 +8,7 @@ const defaults = {
   minimizeToTray: true,
   showTrayIcon: true,
   showRobux: true,
+  macrosDisabled: false,
 };
 
 function readAll() {

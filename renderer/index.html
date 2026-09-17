@@ -8,6 +8,55 @@
   <title>Rexio</title>
 </head>
 <body>
+  <nav class="menubar">
+    <div class="menu-item" data-menu="rexio">
+      Rexio
+      <div class="menu-dropdown">
+        <button data-action="about">About Rexio</button>
+        <button data-action="check-updates">Check for Updates…</button>
+        <hr />
+        <button data-action="goto-settings">Settings</button>
+        <hr />
+        <button data-action="quit">Quit</button>
+      </div>
+    </div>
+    <div class="menu-item" data-menu="accounts">
+      Accounts
+      <div class="menu-dropdown">
+        <button data-action="add-account">Add Account… <span class="menu-key">Ctrl+N</span></button>
+        <button data-action="refresh">Refresh <span class="menu-key">Ctrl+R</span></button>
+        <hr />
+        <button data-action="view-list">List View</button>
+        <button data-action="view-grid">Grid View</button>
+      </div>
+    </div>
+    <div class="menu-item" data-menu="view">
+      View
+      <div class="menu-dropdown">
+        <button data-action="zoom-in">Zoom In</button>
+        <button data-action="zoom-out">Zoom Out</button>
+        <button data-action="zoom-reset">Reset Zoom</button>
+        <hr />
+        <button data-action="fullscreen">Toggle Fullscreen</button>
+      </div>
+    </div>
+    <div class="menu-item" data-menu="window">
+      Window
+      <div class="menu-dropdown">
+        <button data-action="minimize">Minimize</button>
+        <button data-action="close">Close</button>
+      </div>
+    </div>
+    <div class="menu-item" data-menu="help">
+      Help
+      <div class="menu-dropdown">
+        <button data-action="open-log">Open Log File</button>
+        <button data-action="github">GitHub Repository</button>
+        <button data-action="issue">Report an Issue</button>
+      </div>
+    </div>
+  </nav>
+
   <header class="topbar">
     <div class="brand">
       <img src="icon.png" class="brand-mark" alt="" />
@@ -15,6 +64,7 @@
     </div>
     <nav class="tabs">
       <button class="tab active" data-view="accounts">Accounts</button>
+      <button class="tab" data-view="macros">Macros</button>
       <button class="tab" data-view="platform">Sober Settings</button>
       <button class="tab" data-view="app">App Settings</button>
       <span class="tab-indicator"></span>
@@ -55,6 +105,44 @@
       <div id="emptyState" class="empty-state" hidden>
         <p>No accounts yet.</p>
         <span>Add one to launch straight into Roblox.</span>
+      </div>
+    </section>
+
+    <section id="view-macros" class="view" hidden>
+      <div class="section-head">
+        <h2>Macros</h2>
+        <div class="header-actions">
+          <label class="macro-checkbox-label macro-kill-switch"><input type="checkbox" id="macroKillSwitch" /> Disable all macro triggers</label>
+          <button id="importMacroBtn" class="btn-cancel">Import</button>
+          <button id="newMacroBtn" class="btn-cancel">+ New macro</button>
+          <button id="recordMacroBtn" class="btn-add">● Record new macro</button>
+        </div>
+      </div>
+      <p class="settings-note">Records global mouse and keyboard input while active — click Record, perform the actions, then Stop. Assign a hotkey or pixel-color trigger to play a macro back anywhere; pressing the hotkey again mid-playback stops it. Press <strong>Ctrl+Shift+Esc</strong> anytime to release all keys/buttons a macro is holding and stop playback.</p>
+
+      <div id="waylandBanner" class="install-banner" hidden>
+        <span>Running under Wayland — global recording and hotkeys may not work depending on your compositor. X11/XWayland is the supported path for now.</span>
+      </div>
+
+      <input id="macroSearchInput" type="text" class="flag-search" placeholder="Search macros by name or tag…" />
+
+      <div id="macroBulkBar" class="macro-bulk-bar" hidden>
+        <span id="macroBulkCount">0 selected</span>
+        <input id="macroBulkTagInput" type="text" placeholder="Add tag to selected…" />
+        <button id="macroBulkTagBtn" class="btn-cancel small">Add tag</button>
+        <button id="macroBulkExportBtn" class="btn-cancel small">Export selected</button>
+        <button id="macroBulkDeleteBtn" class="btn-delete small">Delete selected</button>
+        <button id="macroBulkClearBtn" class="btn-cancel small">Clear selection</button>
+      </div>
+
+      <ul id="macroList" class="account-list"></ul>
+
+      <div id="macroEmptyState" class="empty-state" hidden>
+        <p>No macros yet.</p>
+        <span>Record one to reuse keyboard/mouse sequences with a hotkey.</span>
+      </div>
+      <div id="macroNoResults" class="empty-state" hidden>
+        <p>No macros match your search.</p>
       </div>
     </section>
 
@@ -149,9 +237,155 @@
     </div>
   </div>
 
+  <div id="macroEditorOverlay" class="overlay" hidden>
+    <div class="confirm-box macro-editor-box">
+      <div class="section-head">
+        <input id="macroEditorName" type="text" class="flag-search macro-name-input" placeholder="Macro name" />
+        <div class="header-actions">
+          <button id="macroUndoBtn" class="btn-icon" title="Undo (Ctrl+Z)">↶</button>
+          <button id="macroRedoBtn" class="btn-icon" title="Redo (Ctrl+Y)">↷</button>
+          <button id="macroCopyAllBtn" class="btn-icon" title="Copy all steps">⧉</button>
+          <button id="macroPasteBtn" class="btn-icon" title="Paste steps">📋</button>
+          <button id="macroExportBtn" class="btn-icon" title="Export to file">⬇</button>
+          <button id="macroValidateBtn" class="btn-icon" title="Validate macro">✓</button>
+        </div>
+      </div>
+      <input id="macroEditorTags" type="text" class="flag-search macro-tags-input" placeholder="Tags, comma-separated (e.g. farming, combat)" />
+      <div id="macroLastRun" class="settings-note macro-last-run" hidden></div>
+      <div id="macroStats" class="settings-note macro-stats" hidden></div>
+
+      <div id="macroTimeline" class="macro-timeline"></div>
+
+      <div class="macro-add-bar">
+        <button class="btn-cancel small" data-add="moveMouse">+ Move mouse</button>
+        <button class="btn-cancel small" data-add="mouseButton">+ Mouse click</button>
+        <button class="btn-cancel small" data-add="keyboardKey">+ Key press</button>
+        <button class="btn-cancel small" data-add="text">+ Type text</button>
+        <button class="btn-cancel small" data-add="wait">+ Wait</button>
+        <button class="btn-cancel small" data-add="waitForPixel">+ Wait for pixel</button>
+        <button class="btn-cancel small" data-add="keyCombo">+ Key combo</button>
+        <button class="btn-cancel small" id="macroAddRunMacroBtn">+ Run macro</button>
+        <select id="macroRunMacroPicker" hidden><option value="">Choose a macro to run…</option></select>
+        <button id="macroAppendRecordBtn" class="btn-cancel small">● Append recording</button>
+      </div>
+
+      <ul id="macroEditorList" class="macro-step-list"></ul>
+      <div id="macroEditorEmpty" class="empty-state" hidden>
+        <p>No steps yet.</p>
+        <span>Add a step above, or record one on the Macros tab.</span>
+      </div>
+
+      <div class="settings-block macro-options-block">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Repeat</div>
+            <div class="toggle-desc">How many times to run the steps per trigger.</div>
+          </div>
+          <div class="macro-inline-fields">
+            <input id="macroLoops" type="number" min="1" value="1" style="width:70px" />
+            <label class="macro-checkbox-label"><input id="macroLoopForever" type="checkbox" /> Loop until stopped</label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Speed</div>
+            <div class="toggle-desc">Scales recorded wait times.</div>
+          </div>
+          <select id="macroSpeed" style="width:100px">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+            <option value="4">4x</option>
+          </select>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Scale to current screen</div>
+            <div class="toggle-desc">Rescales absolute positions if this display's resolution differs from when it was recorded.</div>
+          </div>
+          <div class="switch" id="macroScaleToggle"></div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Target display</div>
+            <div class="toggle-desc">Which monitor's resolution to scale against (matters on multi-monitor setups).</div>
+          </div>
+          <select id="macroTargetDisplay" style="width:220px"></select>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Humanize (jitter)</div>
+            <div class="toggle-desc">Randomizes wait times and click/move positions slightly so playback isn't pixel-perfect identical every run.</div>
+          </div>
+          <div class="macro-inline-fields">
+            <div class="switch" id="macroJitterToggle"></div>
+            <label>± ms <input id="macroJitterMs" type="number" min="0" value="30" style="width:60px" /></label>
+            <label>± px <input id="macroJitterPx" type="number" min="0" value="2" style="width:60px" /></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Confirm before Play</div>
+            <div class="toggle-desc">Ask before running from the ▶ Play button (hotkey/pixel/schedule triggers always run immediately). Suggested when a macro types text.</div>
+          </div>
+          <div class="switch" id="macroConfirmToggle"></div>
+        </div>
+      </div>
+
+      <div class="settings-block macro-options-block">
+        <div class="section-head">
+          <h3>Pixel-color trigger</h3>
+          <div class="switch" id="macroPixelToggle"></div>
+        </div>
+        <div id="macroPixelFields" class="macro-inline-fields" hidden>
+          <label>X <input id="macroPixelX" type="number" style="width:70px" /></label>
+          <label>Y <input id="macroPixelY" type="number" style="width:70px" /></label>
+          <label>Color <input id="macroPixelColor" type="color" value="#ff0000" /></label>
+          <label>Tolerance <input id="macroPixelTolerance" type="number" min="0" max="255" value="10" style="width:60px" /></label>
+          <label>Poll (ms) <input id="macroPixelPoll" type="number" min="100" value="300" style="width:70px" /></label>
+          <button id="macroPixelPick" class="btn-cancel small">Pick pixel under cursor</button>
+        </div>
+      </div>
+
+      <div class="settings-block macro-options-block">
+        <div class="section-head">
+          <h3>Schedule</h3>
+          <div class="switch" id="macroScheduleToggle"></div>
+        </div>
+        <div id="macroScheduleFields" class="macro-inline-fields" hidden>
+          <label>Repeats
+            <select id="macroScheduleKind" style="width:110px">
+              <option value="interval">Every N minutes</option>
+              <option value="time">Daily at time</option>
+            </select>
+          </label>
+          <label id="macroScheduleIntervalWrap">Minutes <input id="macroScheduleInterval" type="number" min="1" value="30" style="width:70px" /></label>
+          <label id="macroScheduleTimeWrap" hidden>Time <input id="macroScheduleTime" type="time" value="09:00" /></label>
+        </div>
+      </div>
+
+      <div class="settings-block macro-options-block">
+        <div class="section-head">
+          <h3>Version history</h3>
+        </div>
+        <div class="macro-inline-fields">
+          <select id="macroVersionSelect" style="width:260px"><option value="">No previous versions</option></select>
+          <button id="macroRestoreVersionBtn" class="btn-cancel small">Restore this version</button>
+        </div>
+      </div>
+
+      <div class="confirm-actions">
+        <button id="macroEditorCancel" class="btn-cancel">Cancel</button>
+        <button id="macroEditorSave" class="btn-add small">Save macro</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toastContainer" class="toast-container"></div>
 
   <script src="renderer.js"></script>
   <script src="settings.js"></script>
+  <script src="macros.js"></script>
 </body>
 </html>
